@@ -28,7 +28,6 @@ use AcmePhp\Ssl\Certificate;
 use AcmePhp\Ssl\CertificateRequest;
 use AcmePhp\Ssl\CertificateResponse;
 use AcmePhp\Ssl\Signer\CertificateRequestSigner;
-use GuzzleHttp\Psr7\Utils;
 use Webmozart\Assert\Assert;
 
 /**
@@ -188,7 +187,7 @@ class AcmeClient implements AcmeClientInterface
             }
         }
 
-        return $this->createCertificateResponse($csr, Utils::copyToString($response->getBody()));
+        return $this->createCertificateResponse($csr, $response->getBody()->getContents());
     }
 
     /**

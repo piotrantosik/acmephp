@@ -13,8 +13,9 @@ namespace AcmePhp\Core\Challenge\Http;
 
 use AcmePhp\Core\Challenge\SolverInterface;
 use AcmePhp\Core\Protocol\AuthorizationChallenge;
-use GuzzleHttp\Client;
-use GuzzleHttp\RequestOptions;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 
 /**
  * ACME HTTP solver talking to pebble-challtestsrv.
@@ -23,6 +24,28 @@ use GuzzleHttp\RequestOptions;
  */
 class MockServerHttpSolver implements SolverInterface
 {
+    /**
+     * @var ClientInterface
+     */
+    private $client;
+
+    /**
+     * @var RequestFactoryInterface
+     */
+    private $requestFactory;
+
+    /**
+     * @var StreamFactoryInterface
+     */
+    private $streamFactory;
+
+    public function __construct(ClientInterface $client, RequestFactoryInterface $requestFactory, StreamFactoryInterface $streamFactory)
+    {
+        $this->client = $client;
+        $this->requestFactory = $requestFactory;
+        $this->streamFactory = $streamFactory;
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -36,12 +59,14 @@ class MockServerHttpSolver implements SolverInterface
      */
     public function solve(AuthorizationChallenge $authorizationChallenge)
     {
-        (new Client())->post('http://localhost:8055/add-http01', [
-            RequestOptions::JSON => [
-                'token' => $authorizationChallenge->getToken(),
-                'content' => $authorizationChallenge->getPayload(),
-            ],
-        ]);
+        $request = $this->requestFactory->createRequest('POST', 'http://localhost:8055/add-http01');
+        $data = [
+            'token' => $authorizationChallenge->getToken(),
+            'content' => $authorizationChallenge->getPayload(),
+        ];
+        $request = $request->withBody($this->streamFactory->createStream(\json_encode($data)));
+
+        $this->client->sendRequest($request);
     }
 
     /**
@@ -49,10 +74,12 @@ class MockServerHttpSolver implements SolverInterface
      */
     public function cleanup(AuthorizationChallenge $authorizationChallenge)
     {
-        (new Client())->post('http://localhost:8055/del-http01', [
-            RequestOptions::JSON => [
-                'token' => $authorizationChallenge->getToken(),
-            ],
-        ]);
+        $request = $this->requestFactory->createRequest('POST', 'http://localhost:8055/del-http01');
+        $data = [
+            'token' => $authorizationChallenge->getToken(),
+        ];
+        $request = $request->withBody($this->streamFactory->createStream(\json_encode($data)));
+
+        $this->client->sendRequest($request);
     }
 }

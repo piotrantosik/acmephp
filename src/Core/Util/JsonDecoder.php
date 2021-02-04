@@ -12,8 +12,6 @@
 namespace AcmePhp\Core\Util;
 
 /**
- * Guzzle HTTP client wrapper to send requests signed with the account KeyPair.
- *
  * @author Titouan Galopin <galopintitouan@gmail.com>
  *
  * @internal
