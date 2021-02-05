@@ -58,7 +58,7 @@ class HttpValidator implements ValidatorInterface
         $request = $this->httpClient->createRequest('GET', $checkUrl);
 
         try {
-            return $checkContent === \trim($this->httpClient->sendRequest($request)->getBody()->getContents());
+            return $checkContent === \trim((string) $this->httpClient->sendRequest($request)->getBody());
         } catch (ClientExceptionInterface $e) {
             return false;
         }

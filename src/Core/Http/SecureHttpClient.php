@@ -193,7 +193,7 @@ class SecureHttpClient
     public function request(string $method, string $endpoint, array $data = [], bool $returnJson = true)
     {
         $response = $this->rawRequest($method, $endpoint, $data);
-        $body = $response->getBody()->getContents();
+        $body = (string) $response->getBody();
 
         if (!$returnJson) {
             return $body;

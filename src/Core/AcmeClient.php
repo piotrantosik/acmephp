@@ -187,7 +187,7 @@ class AcmeClient implements AcmeClientInterface
             }
         }
 
-        return $this->createCertificateResponse($csr, $response->getBody()->getContents());
+        return $this->createCertificateResponse($csr, (string) $response->getBody());
     }
 
     /**

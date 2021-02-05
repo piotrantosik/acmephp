@@ -124,6 +124,6 @@ class PushRancherAction implements ActionInterface
 
         $response = $this->httpClient->sendRequest($request);
 
-        return \json_decode($response->getBody()->getContents(), true);
+        return \json_decode((string) $response->getBody(), true);
     }
 }

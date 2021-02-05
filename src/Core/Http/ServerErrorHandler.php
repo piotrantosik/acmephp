@@ -80,7 +80,7 @@ class ServerErrorHandler
             return RequestException::getResponseBodySummary($response);
         }
 
-        $body = $response->getBody()->getContents();
+        $body = (string) $response->getBody();
 
         if (\strlen($body) > 120) {
             return substr($body, 0, 120).' (truncated...)';
@@ -94,7 +94,7 @@ class ServerErrorHandler
         ResponseInterface $response,
         \Exception $previous = null
     ): AcmeCoreServerException {
-        $body = $response->getBody()->getContents();
+        $body = (string) $response->getBody();
 
         try {
             $data = JsonDecoder::decode($body, true);

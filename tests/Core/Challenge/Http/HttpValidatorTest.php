@@ -14,9 +14,8 @@ namespace Tests\AcmePhp\Core\Challenge\Http;
 use AcmePhp\Core\Challenge\Http\HttpDataExtractor;
 use AcmePhp\Core\Challenge\Http\HttpValidator;
 use AcmePhp\Core\Challenge\SolverInterface;
+use AcmePhp\Core\Http\HttpClient;
 use AcmePhp\Core\Protocol\AuthorizationChallenge;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -30,7 +29,7 @@ class HttpValidatorTest extends TestCase
         $typeHttp = 'http-01';
 
         $mockExtractor = $this->prophesize(HttpDataExtractor::class);
-        $mockHttpClient = $this->prophesize(Client::class);
+        $mockHttpClient = $this->prophesize(HttpClient::class);
         $stubChallenge = $this->prophesize(AuthorizationChallenge::class);
 
         $validator = new HttpValidator($mockExtractor->reveal(), $mockHttpClient->reveal());
@@ -48,19 +47,21 @@ class HttpValidatorTest extends TestCase
         $checkContent = 'randomPayload';
 
         $mockExtractor = $this->prophesize(HttpDataExtractor::class);
-        $mockHttpClient = $this->prophesize(Client::class);
+        $mockHttpClient = $this->prophesize(HttpClient::class);
         $stubResponse = $this->prophesize(ResponseInterface::class);
         $stubStream = $this->prophesize(StreamInterface::class);
         $stubChallenge = $this->prophesize(AuthorizationChallenge::class);
+        $request = $this->prophesize(RequestInterface::class);
+        $mockHttpClient->createRequest('GET', $checkUrl)->willReturn($request);
 
         $validator = new HttpValidator($mockExtractor->reveal(), $mockHttpClient->reveal());
 
         $mockExtractor->getCheckUrl($stubChallenge->reveal())->willReturn($checkUrl);
         $mockExtractor->getCheckContent($stubChallenge->reveal())->willReturn($checkContent);
 
-        $mockHttpClient->get($checkUrl, ['verify' => false])->willReturn($stubResponse->reveal());
+        $mockHttpClient->sendRequest($request->reveal())->willReturn($stubResponse->reveal());
         $stubResponse->getBody()->willReturn($stubStream->reveal());
-        $stubStream->getContents()->willReturn($checkContent);
+        $stubStream->__toString()->willReturn($checkContent);
 
         $this->assertTrue($validator->isValid($stubChallenge->reveal(), $this->prophesize(SolverInterface::class)->reveal()));
     }
@@ -71,7 +72,7 @@ class HttpValidatorTest extends TestCase
         $checkContent = 'randomPayload';
 
         $mockExtractor = $this->prophesize(HttpDataExtractor::class);
-        $mockHttpClient = $this->prophesize(Client::class);
+        $mockHttpClient = $this->prophesize(HttpClient::class);
         $stubChallenge = $this->prophesize(AuthorizationChallenge::class);
 
         $validator = new HttpValidator($mockExtractor->reveal(), $mockHttpClient->reveal());

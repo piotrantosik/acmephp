@@ -15,6 +15,7 @@ use AcmePhp\Core\AcmeClient;
 use AcmePhp\Core\Challenge\Http\SimpleHttpSolver;
 use AcmePhp\Core\Exception\Protocol\CertificateRevocationException;
 use AcmePhp\Core\Http\Base64SafeEncoder;
+use AcmePhp\Core\Http\HttpClient;
 use AcmePhp\Core\Http\SecureHttpClient;
 use AcmePhp\Core\Http\ServerErrorHandler;
 use AcmePhp\Core\Protocol\AuthorizationChallenge;
@@ -29,9 +30,9 @@ use AcmePhp\Ssl\Generator\KeyPairGenerator;
 use AcmePhp\Ssl\Generator\RsaKey\RsaKeyOption;
 use AcmePhp\Ssl\Parser\KeyParser;
 use AcmePhp\Ssl\Signer\DataSigner;
-use GuzzleHttp\Client;
+use Symfony\Component\HttpClient\Psr18Client;
 
-class AcmeClientTest extends AbstractFunctionnalTest
+class AcmeClientTest extends AbstractFunctionalTest
 {
     public function provideFullProcess()
     {
@@ -47,9 +48,11 @@ class AcmeClientTest extends AbstractFunctionnalTest
      */
     public function testFullProcess(KeyOption $keyOption, bool $useAlternateCertificate)
     {
+        $psrClient = new Psr18Client();
+
         $secureHttpClient = new SecureHttpClient(
             (new KeyPairGenerator())->generateKeyPair($keyOption),
-            new Client(),
+            new HttpClient($psrClient, $psrClient, $psrClient),
             new Base64SafeEncoder(),
             new KeyParser(),
             new DataSigner(),

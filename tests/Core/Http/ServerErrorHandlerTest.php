@@ -34,6 +34,7 @@ use AcmePhp\Core\Exception\Server\UserActionRequiredServerException;
 use AcmePhp\Core\Http\ServerErrorHandler;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
+use Nyholm\Psr7\Stream;
 use PHPUnit\Framework\TestCase;
 
 class ServerErrorHandlerTest extends TestCase
@@ -76,7 +77,7 @@ class ServerErrorHandlerTest extends TestCase
         ]));
 
         $exception = $errorHandler->createAcmeExceptionForResponse(
-            (new Psr17Factory())->createRequest('GET', 'http://localhost/foo/bar'), $response
+            (new Psr17Factory())->createRequest('GET', '/foo/bar'), $response
         );
 
         $this->assertInstanceOf($exceptionClass, $exception);
