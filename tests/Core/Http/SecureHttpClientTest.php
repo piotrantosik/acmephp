@@ -122,7 +122,7 @@ class SecureHttpClientTest extends TestCase
 
     public function testValidStringRequest()
     {
-        $client = $this->createMockedClient([new MockResponse('foo')],);
+        $client = $this->createMockedClient([new MockResponse('foo')]);
         $body = $client->request('GET', 'https://localhost/foo', ['foo' => 'bar'], false);
         $this->assertEquals('foo', $body);
     }
