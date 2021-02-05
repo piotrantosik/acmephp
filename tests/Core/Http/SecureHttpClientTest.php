@@ -13,19 +13,16 @@ namespace Tests\AcmePhp\Core\Http;
 
 use AcmePhp\Core\Exception\AcmeCoreException;
 use AcmePhp\Core\Http\Base64SafeEncoder;
+use AcmePhp\Core\Http\HttpClient;
 use AcmePhp\Core\Http\SecureHttpClient;
 use AcmePhp\Core\Http\ServerErrorHandler;
 use AcmePhp\Ssl\Generator\KeyPairGenerator;
 use AcmePhp\Ssl\Parser\KeyParser;
 use AcmePhp\Ssl\Signer\DataSigner;
-use GuzzleHttp\Client;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Middleware;
-use GuzzleHttp\Psr7\Response;
-use GuzzleHttp\Psr7\Uri;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\RequestInterface;
+use Symfony\Component\HttpClient\MockHttpClient;
+use Symfony\Component\HttpClient\Psr18Client;
+use Symfony\Component\HttpClient\Response\MockResponse;
 
 class SecureHttpClientTest extends TestCase
 {
@@ -37,7 +34,9 @@ class SecureHttpClientTest extends TestCase
     private function createMockedClient(array $responses, $willThrow = false)
     {
         $keyPairGenerator = new KeyPairGenerator();
-        $httpClient = new Client(['handler' => HandlerStack::create(new MockHandler($responses))]);
+
+        $client = new MockHttpClient($responses);
+        $psrClient = new Psr18Client($client);
 
         $errorHandler = $this->getMockBuilder(ServerErrorHandler::class)->getMock();
 
@@ -49,7 +48,7 @@ class SecureHttpClientTest extends TestCase
 
         return new SecureHttpClient(
             $keyPairGenerator->generateKeyPair(),
-            $httpClient,
+            new HttpClient($psrClient, $psrClient, $psrClient),
             new Base64SafeEncoder(),
             new KeyParser(),
             new DataSigner(),
@@ -123,67 +122,22 @@ class SecureHttpClientTest extends TestCase
 
     public function testValidStringRequest()
     {
-        $client = $this->createMockedClient([new Response(200, [], 'foo')], false);
-        $body = $client->request('GET', '/foo', ['foo' => 'bar'], false);
+        $client = $this->createMockedClient([new MockResponse('foo')],);
+        $body = $client->request('GET', 'https://localhost/foo', ['foo' => 'bar'], false);
         $this->assertEquals('foo', $body);
     }
 
     public function testValidJsonRequest()
     {
-        $client = $this->createMockedClient([new Response(200, [], json_encode(['test' => 'ok']))], false);
-        $data = $client->request('GET', '/foo', ['foo' => 'bar'], true);
+        $client = $this->createMockedClient([new MockResponse(json_encode(['test' => 'ok']))]);
+        $data = $client->request('GET', 'https://localhost/foo', ['foo' => 'bar'], true);
         $this->assertEquals(['test' => 'ok'], $data);
     }
 
     public function testInvalidJsonRequest()
     {
         $this->expectException('AcmePhp\Core\Exception\Protocol\ExpectedJsonException');
-        $client = $this->createMockedClient([new Response(200, [], 'invalid json')], false);
-        $client->request('GET', '/foo', ['foo' => 'bar'], true);
-    }
-
-    public function testRequestPayload()
-    {
-        $container = [];
-
-        $stack = HandlerStack::create(new MockHandler([new Response(200, [], json_encode(['test' => 'ok']))]));
-        $stack->push(Middleware::history($container));
-
-        $keyPairGenerator = new KeyPairGenerator();
-
-        $dataSigner = $this->getMockBuilder(DataSigner::class)->getMock();
-        $dataSigner->expects($this->once())
-            ->method('signData')
-            ->willReturn('foobar');
-
-        $client = new SecureHttpClient(
-            $keyPairGenerator->generateKeyPair(),
-            new Client(['handler' => $stack]),
-            new Base64SafeEncoder(),
-            new KeyParser(),
-            $dataSigner,
-            $this->getMockBuilder(ServerErrorHandler::class)->getMock()
-        );
-
-        $client->request('POST', '/acme/new-reg', $client->signJwkPayload('/acme/new-reg', ['contact' => 'foo@bar.com']), true);
-
-        // Check request object
-        $this->assertCount(1, $container);
-
-        /** @var RequestInterface $request */
-        $request = $container[0]['request'];
-
-        $this->assertInstanceOf(RequestInterface::class, $request);
-        $this->assertEquals('POST', $request->getMethod());
-        $this->assertEquals('/acme/new-reg', ($request->getUri() instanceof Uri) ? $request->getUri()->getPath() : $request->getUri());
-
-        $body = \GuzzleHttp\Psr7\copy_to_string($request->getBody());
-        $payload = @json_decode($body, true);
-
-        $this->assertIsArray($payload);
-        $this->assertArrayHasKey('protected', $payload);
-        $this->assertArrayHasKey('payload', $payload);
-        $this->assertArrayHasKey('signature', $payload);
-        $this->assertEquals('Zm9vYmFy', $payload['signature']);
+        $client = $this->createMockedClient([new MockResponse('invalid json')]);
+        $client->request('GET', 'https://localhost/foo', ['foo' => 'bar'], true);
     }
 }

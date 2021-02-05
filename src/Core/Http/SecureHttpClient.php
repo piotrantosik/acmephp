@@ -20,12 +20,10 @@ use AcmePhp\Core\Util\JsonDecoder;
 use AcmePhp\Ssl\KeyPair;
 use AcmePhp\Ssl\Parser\KeyParser;
 use AcmePhp\Ssl\Signer\DataSigner;
-use Psr\Http\Client\ClientInterface;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Psr\Http\Client\RequestExceptionInterface;
-use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamFactoryInterface;
 
 /**
  * PSR-18/PSR-17 wrapper to send requests signed with the account KeyPair.
@@ -40,17 +38,7 @@ class SecureHttpClient
     private $accountKeyPair;
 
     /**
-     * @var RequestFactoryInterface 
-     */
-    private $requestFactory;
-
-    /**
-     * @var StreamFactoryInterface
-     */
-    private $streamFactory;
-    
-    /**
-     * @var ClientInterface
+     * @var HttpClient
      */
     private $httpClient;
 
@@ -86,17 +74,13 @@ class SecureHttpClient
 
     public function __construct(
         KeyPair $accountKeyPair,
-        RequestFactoryInterface $requestFactory,
-        StreamFactoryInterface $streamFactory,
-        ClientInterface $httpClient,
+        HttpClient $httpClient,
         Base64SafeEncoder $base64Encoder,
         KeyParser $keyParser,
         DataSigner $dataSigner,
         ServerErrorHandler $errorHandler
     ) {
         $this->accountKeyPair = $accountKeyPair;
-        $this->requestFactory = $requestFactory;
-        $this->streamFactory = $streamFactory;
         $this->httpClient = $httpClient;
         $this->base64Encoder = $base64Encoder;
         $this->keyParser = $keyParser;
@@ -274,7 +258,7 @@ class SecureHttpClient
 
     public function getLastLinks(): array
     {
-        return Header::parse($this->lastResponse->getHeader('Link'));
+        return $this->lastResponse->getHeader('Link');
     }
 
     public function getAccountKeyPair(): KeyPair
@@ -340,18 +324,18 @@ class SecureHttpClient
     private function createRequest($method, $endpoint, $data)
     {
         //$request = new Request($method, $endpoint);
-        $request = $this->requestFactory->createRequest($method, $endpoint);
+        $request = $this->httpClient->createRequest($method, $endpoint);
         $request = $request->withHeader('Accept', 'application/json,application/jose+json,');
 
         if ('POST' === $method && \is_array($data)) {
             $request = $request->withHeader('Content-Type', 'application/jose+json');
-            $request = $request->withBody($this->streamFactory->createStream(json_encode($data)));
+            $request = $request->withBody($this->httpClient->createStream(json_encode($data)));
         }
 
         return $request;
     }
 
-    private function handleClientException(Request $request, \Exception $exception)
+    private function handleClientException(RequestInterface $request, \Exception $exception)
     {
         if ($exception instanceof RequestExceptionInterface && $exception->getResponse() instanceof ResponseInterface) {
             $this->lastResponse = $exception->getResponse();

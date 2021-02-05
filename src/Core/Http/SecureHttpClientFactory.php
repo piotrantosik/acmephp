@@ -14,9 +14,6 @@ namespace AcmePhp\Core\Http;
 use AcmePhp\Ssl\KeyPair;
 use AcmePhp\Ssl\Parser\KeyParser;
 use AcmePhp\Ssl\Signer\DataSigner;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\StreamFactoryInterface;
 
 /**
  * PSR-18/PSR-17 wrapper to send requests signed with the account KeyPair.
@@ -26,17 +23,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 class SecureHttpClientFactory
 {
     /**
-     * @var RequestFactoryInterface
-     */
-    private $requestFactory;
-
-    /**
-     * @var StreamFactoryInterface
-     */
-    private $streamFactory;
-
-    /**
-     * @var ClientInterface
+     * @var HttpClient
      */
     private $httpClient;
 
@@ -61,16 +48,12 @@ class SecureHttpClientFactory
     private $errorHandler;
 
     public function __construct(
-        RequestFactoryInterface $requestFactory,
-        StreamFactoryInterface $streamFactory,
-        ClientInterface $httpClient,
+        HttpClient $httpClient,
         Base64SafeEncoder $base64Encoder,
         KeyParser $keyParser,
         DataSigner $dataSigner,
         ServerErrorHandler $errorHandler
     ) {
-        $this->requestFactory = $requestFactory;
-        $this->streamFactory = $streamFactory;
         $this->httpClient = $httpClient;
         $this->base64Encoder = $base64Encoder;
         $this->keyParser = $keyParser;
@@ -85,8 +68,6 @@ class SecureHttpClientFactory
     {
         return new SecureHttpClient(
             $accountKeyPair,
-            $this->requestFactory,
-            $this->streamFactory,
             $this->httpClient,
             $this->base64Encoder,
             $this->keyParser,

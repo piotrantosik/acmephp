@@ -13,10 +13,8 @@ namespace AcmePhp\Core\Challenge\Dns;
 
 use AcmePhp\Core\Challenge\ConfigurableServiceInterface;
 use AcmePhp\Core\Challenge\MultipleChallengesSolverInterface;
+use AcmePhp\Core\Http\HttpClient;
 use AcmePhp\Core\Protocol\AuthorizationChallenge;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
 use Webmozart\Assert\Assert;
@@ -36,17 +34,7 @@ class GandiSolver implements MultipleChallengesSolverInterface, ConfigurableServ
     private $extractor;
 
     /**
-     * @var RequestFactoryInterface
-     */
-    private $requestFactory;
-
-    /**
-     * @var StreamFactoryInterface
-     */
-    private $streamFactory;
-
-    /**
-     * @var ClientInterface
+     * @var HttpClient
      */
     private $httpClient;
 
@@ -60,11 +48,9 @@ class GandiSolver implements MultipleChallengesSolverInterface, ConfigurableServ
      */
     private $apiKey;
 
-    public function __construct(DnsDataExtractor $extractor = null, RequestFactoryInterface $requestFactory, StreamFactoryInterface $streamFactory, ClientInterface $httpClient)
+    public function __construct(DnsDataExtractor $extractor = null, HttpClient $httpClient)
     {
         $this->extractor = $extractor ?: new DnsDataExtractor();
-        $this->requestFactory = $requestFactory;
-        $this->streamFactory = $streamFactory;
         $this->httpClient = $httpClient;
         $this->logger = new NullLogger();
     }
@@ -107,17 +93,17 @@ class GandiSolver implements MultipleChallengesSolverInterface, ConfigurableServ
 
             $subDomain = \str_replace('.'.$topLevelDomain.'.', '', $recordName);
 
-            $request = $this->requestFactory->createRequest('PUT', 'https://dns.api.gandi.net/api/v5/domains/'.$topLevelDomain.'/records/'.$subDomain.'/TXT');
+            $request = $this->httpClient->createRequest('PUT', 'https://dns.api.gandi.net/api/v5/domains/'.$topLevelDomain.'/records/'.$subDomain.'/TXT');
             $request = $request->withHeader('X-Api-Key', $this->apiKey);
 
-            $data =  [
+            $data = [
                 'rrset_type' => 'TXT',
                 'rrset_ttl' => 600,
                 'rrset_name' => $subDomain,
                 'rrset_values' => [$recordValue],
             ];
 
-            $request = $request->withBody($this->streamFactory->createStream(\json_encode($data)));
+            $request = $request->withBody($this->httpClient->createStream(\json_encode($data)));
 
             $this->httpClient->sendRequest($request);
         }

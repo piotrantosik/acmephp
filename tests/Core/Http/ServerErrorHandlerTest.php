@@ -32,8 +32,8 @@ use AcmePhp\Core\Exception\Server\UnsupportedContactServerException;
 use AcmePhp\Core\Exception\Server\UnsupportedIdentifierServerException;
 use AcmePhp\Core\Exception\Server\UserActionRequiredServerException;
 use AcmePhp\Core\Http\ServerErrorHandler;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Nyholm\Psr7\Response;
 use PHPUnit\Framework\TestCase;
 
 class ServerErrorHandlerTest extends TestCase
@@ -75,7 +75,9 @@ class ServerErrorHandlerTest extends TestCase
             'detail' => $exceptionClass.'Detail',
         ]));
 
-        $exception = $errorHandler->createAcmeExceptionForResponse(new Request('GET', '/foo/bar'), $response);
+        $exception = $errorHandler->createAcmeExceptionForResponse(
+            (new Psr17Factory())->createRequest('GET', 'http://localhost/foo/bar'), $response
+        );
 
         $this->assertInstanceOf($exceptionClass, $exception);
         $this->assertStringContainsString($type, $exception->getMessage());
@@ -88,7 +90,7 @@ class ServerErrorHandlerTest extends TestCase
         $errorHandler = new ServerErrorHandler();
 
         $exception = $errorHandler->createAcmeExceptionForResponse(
-            new Request('GET', '/foo/bar'),
+            (new Psr17Factory())->createRequest('GET', '/foo/bar'),
             new Response(500, [], 'Invalid JSON')
         );
 
@@ -103,7 +105,7 @@ class ServerErrorHandlerTest extends TestCase
         $errorHandler = new ServerErrorHandler();
 
         $exception = $errorHandler->createAcmeExceptionForResponse(
-            new Request('GET', '/foo/bar'),
+            (new Psr17Factory())->createRequest('GET', '/foo/bar'),
             new Response(500, [], json_encode(['not' => 'acme']))
         );
 

@@ -13,10 +13,9 @@ namespace AcmePhp\Core\Challenge\Http;
 
 use AcmePhp\Core\Challenge\SolverInterface;
 use AcmePhp\Core\Challenge\ValidatorInterface;
+use AcmePhp\Core\Http\HttpClient;
 use AcmePhp\Core\Protocol\AuthorizationChallenge;
 use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
 
 /**
  * Validator for HTTP challenges.
@@ -31,20 +30,14 @@ class HttpValidator implements ValidatorInterface
     private $extractor;
 
     /**
-     * @var ClientInterface
+     * @var HttpClient
      */
-    private $client;
+    private $httpClient;
 
-    /**
-     * @var RequestFactoryInterface
-     */
-    private $requestFactory;
-
-    public function __construct(HttpDataExtractor $extractor = null, ClientInterface $client, RequestFactoryInterface $requestFactory)
+    public function __construct(HttpDataExtractor $extractor = null, HttpClient $httpClient)
     {
         $this->extractor = $extractor ?: new HttpDataExtractor();
-        $this->client = $client;
-        $this->requestFactory = $requestFactory;
+        $this->httpClient = $httpClient;
     }
 
     /**
@@ -62,10 +55,10 @@ class HttpValidator implements ValidatorInterface
     {
         $checkUrl = $this->extractor->getCheckUrl($authorizationChallenge);
         $checkContent = $this->extractor->getCheckContent($authorizationChallenge);
-        $request = $this->requestFactory->createRequest('GET', $checkUrl);
+        $request = $this->httpClient->createRequest('GET', $checkUrl);
 
         try {
-            return $checkContent === \trim($this->client->sendRequest($request)->getBody()->getContents());
+            return $checkContent === \trim($this->httpClient->sendRequest($request)->getBody()->getContents());
         } catch (ClientExceptionInterface $e) {
             return false;
         }

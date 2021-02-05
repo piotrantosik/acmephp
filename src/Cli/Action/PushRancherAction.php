@@ -11,11 +11,9 @@
 
 namespace AcmePhp\Cli\Action;
 
+use AcmePhp\Core\Http\HttpClient;
 use AcmePhp\Ssl\Certificate;
 use AcmePhp\Ssl\CertificateResponse;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\StreamFactoryInterface;
 
 /**
  * Action to upload SSL certificates to Rancher using its API.
@@ -27,24 +25,12 @@ use Psr\Http\Message\StreamFactoryInterface;
 class PushRancherAction implements ActionInterface
 {
     /**
-     * @var RequestFactoryInterface
-     */
-    private $requestFactory;
-
-    /**
-     * @var StreamFactoryInterface
-     */
-    private $streamFactory;
-
-    /**
-     * @var ClientInterface
+     * @var HttpClient
      */
     private $httpClient;
 
-    public function __construct(RequestFactoryInterface $requestFactory, StreamFactoryInterface $streamFactory, ClientInterface $httpClient)
+    public function __construct(HttpClient $httpClient)
     {
-        $this->requestFactory = $requestFactory;
-        $this->streamFactory = $streamFactory;
         $this->httpClient = $httpClient;
     }
 
@@ -132,9 +118,9 @@ class PushRancherAction implements ActionInterface
 
     private function request($method, $url, $body = null)
     {
-        $request = $this->requestFactory->createRequest($method, $url);
+        $request = $this->httpClient->createRequest($method, $url);
         $request = $request->withHeader('Content-Type', 'application/json');
-        $request = $request->withBody($this->streamFactory->createStream($body ?: ''));
+        $request = $request->withBody($this->httpClient->createStream($body ?: ''));
 
         $response = $this->httpClient->sendRequest($request);
 
