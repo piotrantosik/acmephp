@@ -130,7 +130,7 @@ class GandiSolver implements MultipleChallengesSolverInterface, ConfigurableServ
 
             $subDomain = \str_replace('.'.$topLevelDomain.'.', '', $recordName);
 
-            $request = $this->requestFactory->createRequest('DELETE', 'https://dns.api.gandi.net/api/v5/domains/'.$topLevelDomain.'/records/'.$subDomain.'/TXT');
+            $request = $this->httpClient->createRequest('DELETE', 'https://dns.api.gandi.net/api/v5/domains/'.$topLevelDomain.'/records/'.$subDomain.'/TXT');
             $request = $request->withHeader('X-Api-Key', $this->apiKey);
 
             $this->httpClient->sendRequest($request);

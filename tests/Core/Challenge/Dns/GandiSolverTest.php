@@ -13,9 +13,11 @@ namespace Tests\AcmePhp\Core\Challenge\Dns;
 
 use AcmePhp\Core\Challenge\Dns\DnsDataExtractor;
 use AcmePhp\Core\Challenge\Dns\GandiSolver;
+use AcmePhp\Core\Http\HttpClient;
 use AcmePhp\Core\Protocol\AuthorizationChallenge;
-use GuzzleHttp\ClientInterface;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\StreamInterface;
 
 class GandiSolverTest extends TestCase
 {
@@ -25,7 +27,7 @@ class GandiSolverTest extends TestCase
         $typeHttp = 'http-01';
 
         $mockExtractor = $this->prophesize(DnsDataExtractor::class);
-        $mockClient = $this->prophesize(ClientInterface::class);
+        $mockClient = $this->prophesize(HttpClient::class);
         $stubChallenge = $this->prophesize(AuthorizationChallenge::class);
 
         $solver = new GandiSolver($mockExtractor->reveal(), $mockClient->reveal());
@@ -44,32 +46,26 @@ class GandiSolverTest extends TestCase
         $recordValue = 'record_value';
 
         $mockExtractor = $this->prophesize(DnsDataExtractor::class);
-        $mockClient = $this->prophesize(ClientInterface::class);
+        $mockHttpClient = $this->prophesize(HttpClient::class);
         $stubChallenge = $this->prophesize(AuthorizationChallenge::class);
+        $stubRequest = $this->prophesize(RequestInterface::class);
+        $stubStream = $this->prophesize(StreamInterface::class);
 
-        $solver = new GandiSolver($mockExtractor->reveal(), $mockClient->reveal());
+        $solver = new GandiSolver($mockExtractor->reveal(), $mockHttpClient->reveal());
+        $solver->configure(['api_key' => 'stub']);
 
         $mockExtractor->getRecordName($stubChallenge->reveal())->willReturn($recordName);
         $mockExtractor->getRecordValue($stubChallenge->reveal())->willReturn($recordValue);
         $stubChallenge->getDomain()->willReturn($domain);
 
-        $mockClient->request(
-            'PUT',
-            'https://dns.api.gandi.net/api/v5/domains/bar.com/records/_acme-challenge.sub-domain/TXT',
-            [
-                'headers' => [
-                    'X-Api-Key' => 'stub',
-                ],
-                'json' => [
-                    'rrset_type' => 'TXT',
-                    'rrset_ttl' => 600,
-                    'rrset_name' => '_acme-challenge.sub-domain',
-                    'rrset_values' => ['record_value'],
-                ],
-            ]
-        )->shouldBeCalled();
+        $mockHttpClient->createRequest('PUT', 'https://dns.api.gandi.net/api/v5/domains/bar.com/records/_acme-challenge.sub-domain/TXT')->willReturn($stubRequest);
+        $stubRequest->withHeader('X-Api-Key', 'stub')->shouldBeCalled()->willReturn($stubRequest);
 
-        $solver->configure(['api_key' => 'stub']);
+        $mockHttpClient->createStream('{"rrset_type":"TXT","rrset_ttl":600,"rrset_name":"_acme-challenge.sub-domain","rrset_values":["record_value"]}')->shouldBeCalled()->willReturn($stubStream);
+        $stubRequest->withBody($stubStream)->shouldBeCalled()->willReturn($stubRequest);
+
+        $mockHttpClient->sendRequest($stubRequest)->shouldBeCalled();
+
         $solver->solve($stubChallenge->reveal());
     }
 
@@ -80,26 +76,22 @@ class GandiSolverTest extends TestCase
         $recordValue = 'record_value';
 
         $mockExtractor = $this->prophesize(DnsDataExtractor::class);
-        $mockClient = $this->prophesize(ClientInterface::class);
         $stubChallenge = $this->prophesize(AuthorizationChallenge::class);
+        $mockHttpClient = $this->prophesize(HttpClient::class);
+        $stubRequest = $this->prophesize(RequestInterface::class);
 
-        $solver = new GandiSolver($mockExtractor->reveal(), $mockClient->reveal());
+        $solver = new GandiSolver($mockExtractor->reveal(), $mockHttpClient->reveal());
+        $solver->configure(['api_key' => 'stub']);
 
         $mockExtractor->getRecordName($stubChallenge->reveal())->willReturn($recordName);
         $mockExtractor->getRecordValue($stubChallenge->reveal())->willReturn($recordValue);
         $stubChallenge->getDomain()->willReturn($domain);
 
-        $mockClient->request(
-            'DELETE',
-            'https://dns.api.gandi.net/api/v5/domains/bar.com/records/_acme-challenge.sub-domain/TXT',
-            [
-                'headers' => [
-                    'X-Api-Key' => 'stub',
-                ],
-            ]
-        )->shouldBeCalled();
+        $mockHttpClient->createRequest('DELETE', 'https://dns.api.gandi.net/api/v5/domains/bar.com/records/_acme-challenge.sub-domain/TXT')->willReturn($stubRequest);
+        $stubRequest->withHeader('X-Api-Key', 'stub')->shouldBeCalled()->willReturn($stubRequest);
 
-        $solver->configure(['api_key' => 'stub']);
+        $mockHttpClient->sendRequest($stubRequest)->shouldBeCalled();
+
         $solver->cleanup($stubChallenge->reveal());
     }
 }
