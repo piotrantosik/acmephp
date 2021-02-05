@@ -39,7 +39,12 @@
         <service id="ssl.data_signer" class="AcmePhp\Ssl\Signer\DataSigner" />
 
         <!-- Core -->
-        <service id="http.raw_client" class="GuzzleHttp\Client" public="false" />
+        <service id="http.psr_18_client" class="Symfony\Component\HttpClient\Psr18Client" public="false" />
+        <service id="http.raw_client" class="AcmePhp\Core\Http\HttpClient" public="false">
+            <argument type="service" id="http.psr_18_client"/>
+            <argument type="service" id="http.psr_18_client"/>
+            <argument type="service" id="http.psr_18_client"/>
+        </service>
         <service id="http.base64_encoder" class="AcmePhp\Core\Http\Base64SafeEncoder" public="false" />
         <service id="http.server_error_handler" class="AcmePhp\Core\Http\ServerErrorHandler" public="false" />
 
