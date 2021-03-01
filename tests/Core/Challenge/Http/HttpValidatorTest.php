@@ -17,6 +17,7 @@ use AcmePhp\Core\Challenge\SolverInterface;
 use AcmePhp\Core\Http\HttpClient;
 use AcmePhp\Core\Protocol\AuthorizationChallenge;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
