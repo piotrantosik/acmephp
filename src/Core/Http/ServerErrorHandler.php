@@ -32,7 +32,6 @@ use AcmePhp\Core\Exception\Server\UnsupportedContactServerException;
 use AcmePhp\Core\Exception\Server\UnsupportedIdentifierServerException;
 use AcmePhp\Core\Exception\Server\UserActionRequiredServerException;
 use AcmePhp\Core\Util\JsonDecoder;
-use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 

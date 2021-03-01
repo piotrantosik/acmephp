@@ -34,7 +34,6 @@ use AcmePhp\Core\Exception\Server\UserActionRequiredServerException;
 use AcmePhp\Core\Http\ServerErrorHandler;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
-use Nyholm\Psr7\Stream;
 use PHPUnit\Framework\TestCase;
 
 class ServerErrorHandlerTest extends TestCase

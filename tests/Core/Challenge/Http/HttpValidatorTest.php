@@ -74,17 +74,15 @@ class HttpValidatorTest extends TestCase
         $mockExtractor = $this->prophesize(HttpDataExtractor::class);
         $mockHttpClient = $this->prophesize(HttpClient::class);
         $stubChallenge = $this->prophesize(AuthorizationChallenge::class);
+        $request = $this->prophesize(RequestInterface::class);
 
         $validator = new HttpValidator($mockExtractor->reveal(), $mockHttpClient->reveal());
 
         $mockExtractor->getCheckUrl($stubChallenge->reveal())->willReturn($checkUrl);
         $mockExtractor->getCheckContent($stubChallenge->reveal())->willReturn($checkContent);
 
-        $mockHttpClient->get($checkUrl, ['verify' => false])->willThrow(new ClientException(
-            'boom',
-            $this->prophesize(RequestInterface::class)->reveal(),
-            $this->prophesize(ResponseInterface::class)->reveal()
-        ));
+        $mockHttpClient->createRequest('GET', $checkUrl)->willReturn($request);
+        $mockHttpClient->sendRequest($request->reveal())->willThrow(ClientExceptionInterface::class);
 
         $this->assertFalse($validator->isValid($stubChallenge->reveal(), $this->prophesize(SolverInterface::class)->reveal()));
     }
