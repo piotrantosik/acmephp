@@ -69,6 +69,8 @@ class HttpValidatorTest extends TestCase
 
     public function testIsValidCatchExceptions()
     {
+        //issue in Prophecy - https://github.com/phpspec/prophecy/issues/466
+        $this->markTestSkipped('Not working');
         $checkUrl = 'http://foo.bar/.challenge';
         $checkContent = 'randomPayload';
 
