@@ -13,9 +13,8 @@ namespace AcmePhp\Core\Challenge\Dns;
 
 use AcmePhp\Core\Challenge\ConfigurableServiceInterface;
 use AcmePhp\Core\Challenge\MultipleChallengesSolverInterface;
+use AcmePhp\Core\Http\HttpClient;
 use AcmePhp\Core\Protocol\AuthorizationChallenge;
-use GuzzleHttp\Client;
-use GuzzleHttp\ClientInterface;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
 use Webmozart\Assert\Assert;
@@ -35,9 +34,9 @@ class GandiSolver implements MultipleChallengesSolverInterface, ConfigurableServ
     private $extractor;
 
     /**
-     * @var ClientInterface
+     * @var HttpClient
      */
-    private $client;
+    private $httpClient;
 
     /**
      * @var array
@@ -49,10 +48,10 @@ class GandiSolver implements MultipleChallengesSolverInterface, ConfigurableServ
      */
     private $apiKey;
 
-    public function __construct(DnsDataExtractor $extractor = null, ClientInterface $client = null)
+    public function __construct(DnsDataExtractor $extractor = null, HttpClient $httpClient)
     {
         $this->extractor = $extractor ?: new DnsDataExtractor();
-        $this->client = $client ?: new Client();
+        $this->httpClient = $httpClient;
         $this->logger = new NullLogger();
     }
 
@@ -94,21 +93,19 @@ class GandiSolver implements MultipleChallengesSolverInterface, ConfigurableServ
 
             $subDomain = \str_replace('.'.$topLevelDomain.'.', '', $recordName);
 
-            $this->client->request(
-                'PUT',
-                'https://dns.api.gandi.net/api/v5/domains/'.$topLevelDomain.'/records/'.$subDomain.'/TXT',
-                [
-                    'headers' => [
-                        'X-Api-Key' => $this->apiKey,
-                    ],
-                    'json' => [
-                        'rrset_type' => 'TXT',
-                        'rrset_ttl' => 600,
-                        'rrset_name' => $subDomain,
-                        'rrset_values' => [$recordValue],
-                    ],
-                ]
-            );
+            $request = $this->httpClient->createRequest('PUT', 'https://dns.api.gandi.net/api/v5/domains/'.$topLevelDomain.'/records/'.$subDomain.'/TXT');
+            $request = $request->withHeader('X-Api-Key', $this->apiKey);
+
+            $data = [
+                'rrset_type' => 'TXT',
+                'rrset_ttl' => 600,
+                'rrset_name' => $subDomain,
+                'rrset_values' => [$recordValue],
+            ];
+
+            $request = $request->withBody($this->httpClient->createStream(\json_encode($data)));
+
+            $this->httpClient->sendRequest($request);
         }
     }
 
@@ -133,15 +130,10 @@ class GandiSolver implements MultipleChallengesSolverInterface, ConfigurableServ
 
             $subDomain = \str_replace('.'.$topLevelDomain.'.', '', $recordName);
 
-            $this->client->request(
-                'DELETE',
-                'https://dns.api.gandi.net/api/v5/domains/'.$topLevelDomain.'/records/'.$subDomain.'/TXT',
-                [
-                    'headers' => [
-                        'X-Api-Key' => $this->apiKey,
-                    ],
-                ]
-            );
+            $request = $this->httpClient->createRequest('DELETE', 'https://dns.api.gandi.net/api/v5/domains/'.$topLevelDomain.'/records/'.$subDomain.'/TXT');
+            $request = $request->withHeader('X-Api-Key', $this->apiKey);
+
+            $this->httpClient->sendRequest($request);
         }
     }
 

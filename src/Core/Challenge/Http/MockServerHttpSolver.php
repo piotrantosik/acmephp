@@ -12,9 +12,8 @@
 namespace AcmePhp\Core\Challenge\Http;
 
 use AcmePhp\Core\Challenge\SolverInterface;
+use AcmePhp\Core\Http\HttpClient;
 use AcmePhp\Core\Protocol\AuthorizationChallenge;
-use GuzzleHttp\Client;
-use GuzzleHttp\RequestOptions;
 
 /**
  * ACME HTTP solver talking to pebble-challtestsrv.
@@ -23,6 +22,16 @@ use GuzzleHttp\RequestOptions;
  */
 class MockServerHttpSolver implements SolverInterface
 {
+    /**
+     * @var HttpClient
+     */
+    private $httpClient;
+
+    public function __construct(HttpClient $httpClient)
+    {
+        $this->httpClient = $httpClient;
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -36,12 +45,14 @@ class MockServerHttpSolver implements SolverInterface
      */
     public function solve(AuthorizationChallenge $authorizationChallenge)
     {
-        (new Client())->post('http://localhost:8055/add-http01', [
-            RequestOptions::JSON => [
-                'token' => $authorizationChallenge->getToken(),
-                'content' => $authorizationChallenge->getPayload(),
-            ],
-        ]);
+        $request = $this->httpClient->createRequest('POST', 'http://localhost:8055/add-http01');
+        $data = [
+            'token' => $authorizationChallenge->getToken(),
+            'content' => $authorizationChallenge->getPayload(),
+        ];
+        $request = $request->withBody($this->httpClient->createStream(\json_encode($data)));
+
+        $this->httpClient->sendRequest($request);
     }
 
     /**
@@ -49,10 +60,12 @@ class MockServerHttpSolver implements SolverInterface
      */
     public function cleanup(AuthorizationChallenge $authorizationChallenge)
     {
-        (new Client())->post('http://localhost:8055/del-http01', [
-            RequestOptions::JSON => [
-                'token' => $authorizationChallenge->getToken(),
-            ],
-        ]);
+        $request = $this->httpClient->createRequest('POST', 'http://localhost:8055/del-http01');
+        $data = [
+            'token' => $authorizationChallenge->getToken(),
+        ];
+        $request = $request->withBody($this->httpClient->createStream(\json_encode($data)));
+
+        $this->httpClient->sendRequest($request);
     }
 }

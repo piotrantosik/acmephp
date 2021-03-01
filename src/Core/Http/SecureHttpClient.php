@@ -20,16 +20,13 @@ use AcmePhp\Core\Util\JsonDecoder;
 use AcmePhp\Ssl\KeyPair;
 use AcmePhp\Ssl\Parser\KeyParser;
 use AcmePhp\Ssl\Signer\DataSigner;
-use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Psr7\Header;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Utils;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
+use Psr\Http\Client\RequestExceptionInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * Guzzle HTTP client wrapper to send requests signed with the account KeyPair.
+ * PSR-18/PSR-17 wrapper to send requests signed with the account KeyPair.
  *
  * @author Titouan Galopin <galopintitouan@gmail.com>
  */
@@ -41,7 +38,7 @@ class SecureHttpClient
     private $accountKeyPair;
 
     /**
-     * @var ClientInterface
+     * @var HttpClient
      */
     private $httpClient;
 
@@ -77,7 +74,7 @@ class SecureHttpClient
 
     public function __construct(
         KeyPair $accountKeyPair,
-        ClientInterface $httpClient,
+        HttpClient $httpClient,
         Base64SafeEncoder $base64Encoder,
         KeyParser $keyParser,
         DataSigner $dataSigner,
@@ -121,7 +118,7 @@ class SecureHttpClient
 
     public function getJWKThumbprint(): string
     {
-        return hash('sha256', json_encode($this->getJWK()), true);
+        return \hash('sha256', \json_encode($this->getJWK()), true);
     }
 
     /**
@@ -196,7 +193,7 @@ class SecureHttpClient
     public function request(string $method, string $endpoint, array $data = [], bool $returnJson = true)
     {
         $response = $this->rawRequest($method, $endpoint, $data);
-        $body = Utils::copyToString($response->getBody());
+        $body = (string) $response->getBody();
 
         if (!$returnJson) {
             return $body;
@@ -227,7 +224,7 @@ class SecureHttpClient
         $call = function () use ($method, $endpoint, $data) {
             $request = $this->createRequest($method, $endpoint, $data);
             try {
-                $this->lastResponse = $this->httpClient->send($request);
+                $this->lastResponse = $this->httpClient->sendRequest($request);
             } catch (\Exception $exception) {
                 $this->handleClientException($request, $exception);
             }
@@ -261,7 +258,7 @@ class SecureHttpClient
 
     public function getLastLinks(): array
     {
-        return Header::parse($this->lastResponse->getHeader('Link'));
+        return $this->lastResponse->getHeader('Link');
     }
 
     public function getAccountKeyPair(): KeyPair
@@ -326,20 +323,21 @@ class SecureHttpClient
 
     private function createRequest($method, $endpoint, $data)
     {
-        $request = new Request($method, $endpoint);
+        //$request = new Request($method, $endpoint);
+        $request = $this->httpClient->createRequest($method, $endpoint);
         $request = $request->withHeader('Accept', 'application/json,application/jose+json,');
 
         if ('POST' === $method && \is_array($data)) {
             $request = $request->withHeader('Content-Type', 'application/jose+json');
-            $request = $request->withBody(Utils::streamFor(json_encode($data)));
+            $request = $request->withBody($this->httpClient->createStream(json_encode($data)));
         }
 
         return $request;
     }
 
-    private function handleClientException(Request $request, \Exception $exception)
+    private function handleClientException(RequestInterface $request, \Exception $exception)
     {
-        if ($exception instanceof RequestException && $exception->getResponse() instanceof ResponseInterface) {
+        if ($exception instanceof RequestExceptionInterface && $exception->getResponse() instanceof ResponseInterface) {
             $this->lastResponse = $exception->getResponse();
 
             throw $this->errorHandler->createAcmeExceptionForResponse($request, $this->lastResponse, $exception);

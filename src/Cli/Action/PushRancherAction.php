@@ -11,10 +11,9 @@
 
 namespace AcmePhp\Cli\Action;
 
+use AcmePhp\Core\Http\HttpClient;
 use AcmePhp\Ssl\Certificate;
 use AcmePhp\Ssl\CertificateResponse;
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\Uri;
 
 /**
  * Action to upload SSL certificates to Rancher using its API.
@@ -26,11 +25,11 @@ use GuzzleHttp\Psr7\Uri;
 class PushRancherAction implements ActionInterface
 {
     /**
-     * @var Client
+     * @var HttpClient
      */
     private $httpClient;
 
-    public function __construct(Client $httpClient)
+    public function __construct(HttpClient $httpClient)
     {
         $this->httpClient = $httpClient;
     }
@@ -68,7 +67,7 @@ class PushRancherAction implements ActionInterface
             return $certificate->getPEM();
         }, $certificate->getIssuerChain());
 
-        return \GuzzleHttp\json_encode([
+        return \json_encode([
             'name' => $response->getCertificateRequest()->getDistinguishedName()->getCommonName(),
             'description' => 'Generated with Acme PHP',
             'cert' => $certificate->getPEM(),
@@ -119,13 +118,12 @@ class PushRancherAction implements ActionInterface
 
     private function request($method, $url, $body = null)
     {
-        $response = $this->httpClient->request($method, $url, [
-            'headers' => [
-                'Content-Type' => 'application/json',
-            ],
-            'body' => $body ?: '',
-        ]);
+        $request = $this->httpClient->createRequest($method, $url);
+        $request = $request->withHeader('Content-Type', 'application/json');
+        $request = $request->withBody($this->httpClient->createStream($body ?: ''));
 
-        return \GuzzleHttp\json_decode(\GuzzleHttp\Psr7\copy_to_string($response->getBody()), true);
+        $response = $this->httpClient->sendRequest($request);
+
+        return \json_decode((string) $response->getBody(), true);
     }
 }

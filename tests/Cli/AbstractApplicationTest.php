@@ -15,9 +15,9 @@ use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Tests\AcmePhp\Cli\Mock\TestApplication;
-use Tests\AcmePhp\Core\AbstractFunctionnalTest;
+use Tests\AcmePhp\Core\AbstractFunctionalTest;
 
-abstract class AbstractApplicationTest extends AbstractFunctionnalTest
+abstract class AbstractApplicationTest extends AbstractFunctionalTest
 {
     /**
      * @var TestApplication

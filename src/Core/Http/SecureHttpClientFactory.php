@@ -14,17 +14,16 @@ namespace AcmePhp\Core\Http;
 use AcmePhp\Ssl\KeyPair;
 use AcmePhp\Ssl\Parser\KeyParser;
 use AcmePhp\Ssl\Signer\DataSigner;
-use GuzzleHttp\ClientInterface;
 
 /**
- * Guzzle HTTP client wrapper to send requests signed with the account KeyPair.
+ * PSR-18/PSR-17 wrapper to send requests signed with the account KeyPair.
  *
  * @author Titouan Galopin <galopintitouan@gmail.com>
  */
 class SecureHttpClientFactory
 {
     /**
-     * @var ClientInterface
+     * @var HttpClient
      */
     private $httpClient;
 
@@ -49,7 +48,7 @@ class SecureHttpClientFactory
     private $errorHandler;
 
     public function __construct(
-        ClientInterface $httpClient,
+        HttpClient $httpClient,
         Base64SafeEncoder $base64Encoder,
         KeyParser $keyParser,
         DataSigner $dataSigner,
